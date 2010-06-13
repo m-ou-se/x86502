@@ -1,0 +1,1369 @@
+; File: coptergame.65s
+
+; THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+; WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES 
+; OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+; DISCLAIMED. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY DIRECT,
+; INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+; (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+; SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+; HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+; STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+; OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+ .START init
+
+;--------------------
+; Start vector [FFFC - FFFD]
+;--------------------
+ .ORG  $FFFC
+	.WORD init
+
+;--------------------
+; Constants
+;--------------------
+
+; Characters
+CHAR_MAP      .= $DB      ; character code for a filled block
+CHAR_LINE     .= $CD      ; character code for an horizontal line
+CHAR_SPACE    .= $00      ; character code for an empty space
+CHAR_COPTER   .= $F0      ; starting character code for the copter
+COPTER_WIDTH  .= 3        ; width in characters for the copter
+
+; Color(s)
+TITLE_BAR_COLOR .= $F0
+
+; Game var(s)
+UPDATE_RATE   .= 1 ; Higher value -> lower game speed
+
+; Input data
+INPUT         .= $DFFF    ; location to read input from
+FUNCTION_KEY  .= $39      ; key code to do stuff
+UP_KEY        .= $48      ; key code to fly up
+LEFT_KEY      .= $4B      ; key code to fly left
+RIGHT_KEY     .= $4D      ; key code to fly right
+DOWN_KEY      .= $50      ; key code to fly down
+CHEAT_KEY     .= $43      ; key code to cheat
+RESET_KEY     .= $01      ; key code to reset
+
+; VGA information
+VGA            .= $D000    ; VGA memory address
+VGA_DIRTY      .= $DFFE    ; byte to indicate VGA needs to be updated
+VGA_CHAR_INDEX .= $DFFD    ; byte containing the index of the character to overwrite in the font
+VGA_CHAR       .= $DFA0    ; new bitmap font data for char VGA_CHAR_INDEX
+
+; Initial level state information
+INITIAL_P1_START  .= 12
+INITIAL_P1_DIR    .= 0
+INITIAL_P1_LENGTH .= 5
+
+INITIAL_P2_START  .= 12
+INITIAL_P2_DIR    .= 0
+INITIAL_P2_LENGTH .= 5
+
+
+;--------------------
+; Zero page [0000 - 00FF]
+;--------------------
+ .ORG $0000
+ 
+; Misc game data
+level:           .BYTE 0      ; the current level (0: level 1, 1: level 2, ... etc.)
+mode:            .BYTE 0      ; the current mode (0: 'press space to start', 1: playing, 2: crashed)
+copter_x:        .BYTE 0      ; X position of the copter
+copter_y:        .BYTE 0      ; Y position of the copter
+copter_vga:      .WORD 0      ; position of the copter translated to a position in VGA memory
+distance:        .WORD 0      ; distance flown in the current level
+total_distance:  .WORD 0      ; distance flown in total
+                 .WORD 0
+even_scroll:     .BYTE 0      ; scroll the even or odd map columns
+update_counter:  .BYTE 0
+
+; Colors
+color_path:      .BYTE 0      ; map color
+color_wall:      .BYTE 0      ; copter color
+color_path_next: .BYTE 0      ; path color of the next map
+color_wall_next: .BYTE 0      ; wall color of the next map
+color_offset:    .BYTE 0      ; added to color location thingy
+
+; Current path state
+path1_height:    .BYTE 0      ; height of path 1
+path1_dir:       .BYTE 0      ; direction of the current segment
+path1_length:    .BYTE 0      ; remaining length for current segment
+path1_start:     .BYTE 0      ; current start
+path1_end:       .BYTE 0      ; current end
+
+path2_height:    .BYTE 0      ; height of path 2
+path2_dir:       .BYTE 0      ; direction of the current segment
+path2_length:    .BYTE 0      ; remaining length for current segment
+path2_start:     .BYTE 0      ; current start
+path2_end:       .BYTE 0      ; current end
+ 
+; Random generator
+SEED0:   .BYTE 0
+SEED1:   .BYTE 0
+SEED2:   .BYTE 0
+SEED3:   .BYTE 0
+TMP:     .RS 4
+
+; Pointer(s) to constant data
+start_message_ptr:  .WORD start_message
+crash_message_ptr:  .WORD crash_message
+finish_message_ptr: .WORD finish_message
+
+;--------------------
+; Keyboard state [0200 - 02FF]
+;--------------------
+ .ORG $0200
+
+keyboard:
+ ; A boolean for every key. value zero/nonzero -> key down/up.
+ .REPEAT 256
+	.BYTE 0
+ .ENDR
+
+;--------------------
+; Constant data [0300 - 03FF]
+;--------------------
+
+ .ORG $0300
+
+; Lookup table. Maps 0 .. 7 to -1 .. 1
+increment_table:
+	.BYTE -1
+	.BYTE -1
+	.BYTE -1
+	.BYTE  0
+	.BYTE  0
+	.BYTE  1
+	.BYTE  1
+	.BYTE  1
+
+; Level data [color_path, color_wall, path_1_height, path_2_height]
+level_table:
+	.BYTE $B1, $6A, 9, 9 ; Level 1
+	.BYTE $9F, $83, 8, 9 ; Level 2
+	.BYTE $90, $04, 8, 8 ; Level 3
+	.BYTE $E1, $4C, 7, 8 ; Level 4
+	.BYTE $87, $03, 7, 7 ; Level 5
+	.BYTE $F1, $34, 6, 7 ; Level 6
+	.BYTE $4E, $C0, 6, 6 ; Level 7
+	.BYTE $40, $04, 5, 6 ; Level 8
+	.BYTE $00, $00, 0, 0 ; End
+
+; Update function table	
+updaters:
+	.WORD update_mode_0
+	.WORD update_mode_1
+	.WORD update_mode_2
+	.WORD update_mode_3
+
+title_bar:
+	.BYTE "x86502 CopterGame - http://code.google.com/p/x86502 ",$BA," LEVEL 1 0000/1000 00000000"
+
+start_message:
+	.BYTE "> > > > > > > > > Welcome to level #.  Press [space] to start! < < < < < < < < <"
+
+crash_message:
+	.BYTE "> > > > > > > >  You crashed! Press [space] to restart level #.  < < < < < < < <"
+	
+finish_message:
+	.BYTE "> > > > > > > > > > Congratulations!  You finished the game! < < < < < < < < < <"
+
+;--------------------
+; Program code [0500 - ....]
+;--------------------
+ .ORG $0500
+ 
+;--------------------
+; init
+; The entry point.
+;--------------------
+init:
+	
+	; Update the vga font to make it possible to draw an helicopter.
+	
+	; First char:
+.wait1:
+	LDA VGA_CHAR_INDEX    ; wait for the font rewriter to be ready
+	BNE .wait1            ; "
+	LDA #$00              ; the character bitmap (hardcoded)
+	STA VGA_CHAR + 0
+	STA VGA_CHAR + 1
+	STA VGA_CHAR + 2
+	STA VGA_CHAR + 4
+	STA VGA_CHAR + 12
+	STA VGA_CHAR + 13
+	STA VGA_CHAR + 14
+	STA VGA_CHAR + 15
+	LDA #$1F              ; "
+	STA VGA_CHAR + 3
+	STA VGA_CHAR + 10
+	LDA #$80              ; "
+	STA VGA_CHAR + 5
+	LDA #$C0              ; "
+	STA VGA_CHAR + 6
+	LDA #$E0              ; "
+	STA VGA_CHAR + 7
+	LDA #$FF              ; "
+	STA VGA_CHAR + 8
+	LDA #$7F              ; "
+	STA VGA_CHAR + 9
+	LDA #$01              ; "
+	STA VGA_CHAR + 11
+	LDA #CHAR_COPTER      ; the character index
+	STA VGA_CHAR_INDEX    ; "
+	
+	; Second char:
+.wait2:
+	LDA VGA_CHAR_INDEX    ; wait for the previous char to be processed
+	BNE .wait2            ; "
+	LDA #$00              ; the character bitmap (hardcoded)
+	STA VGA_CHAR + 0
+	STA VGA_CHAR + 1
+	STA VGA_CHAR + 15
+	LDA #$04              ; "
+	STA VGA_CHAR + 2
+	STA VGA_CHAR + 5
+	LDA #$FF              ; "
+	STA VGA_CHAR + 3
+	STA VGA_CHAR + 7
+	STA VGA_CHAR + 8
+	STA VGA_CHAR + 9
+	STA VGA_CHAR + 10
+	STA VGA_CHAR + 11
+	LDA #$3F              ; "
+	STA VGA_CHAR + 4
+	LDA #$1F              ; "
+	STA VGA_CHAR + 6
+	LDA #$3F              ; "
+	STA VGA_CHAR + 12
+	LDA #$10              ; "
+	STA VGA_CHAR + 13
+	LDA #$7F              ; "
+	STA VGA_CHAR + 14
+	LDA #CHAR_COPTER+1    ; the character index
+	STA VGA_CHAR_INDEX    ; "
+	
+	; Third char:
+.wait3:
+	LDA VGA_CHAR_INDEX    ; wait for the previous char to be processed
+	BNE .wait3            ; "
+	LDA #$00
+	STA VGA_CHAR + 0
+	STA VGA_CHAR + 1
+	STA VGA_CHAR + 2
+	STA VGA_CHAR + 5
+	STA VGA_CHAR + 6
+	STA VGA_CHAR + 15
+	LDA #$FF
+	STA VGA_CHAR + 3
+	STA VGA_CHAR + 10
+	LDA #$80
+	STA VGA_CHAR + 4
+	LDA #$FC
+	STA VGA_CHAR + 7
+	STA VGA_CHAR + 12
+	LDA #$8E
+	STA VGA_CHAR + 8
+	LDA #$87
+	STA VGA_CHAR + 9
+	LDA #$FE
+	STA VGA_CHAR + 11
+	STA VGA_CHAR + 14
+	LDA #$81
+	STA VGA_CHAR + 13
+	LDA #CHAR_COPTER+2    ; write the index
+	STA VGA_CHAR_INDEX    ; "
+	
+	
+reset:
+	LDA #0
+	STA VGA_DIRTY
+	
+.vga_index .= VGA
+ .REPEAT 16
+ 	LDY #250
+.loop .= *
+	STA .vga_index-1,Y
+	DEY
+	BNE .loop
+.vga_index .= .vga_index + 250
+ .ENDR
+	
+	STA total_distance
+	STA total_distance+1
+	STA total_distance+2
+	STA total_distance+3
+	
+	LDY #0
+	LDX #0
+.draw_title_bar:
+	LDA title_bar, Y
+	STA VGA, X
+	INX
+	LDA #TITLE_BAR_COLOR
+	STA VGA,X
+	INX
+	INY
+	CPY #80
+	BNE .draw_title_bar
+	
+	LDA #-1
+	STA level
+	
+	LDA #UPDATE_RATE
+	STA update_counter
+	
+	JSR next_level
+	
+main_loop:
+	JSR handle_input      ; process any input
+	
+	LDA VGA_DIRTY         ; wait for the vga update
+	BNE main_loop         ; "
+	
+	LDA keyboard + CHEAT_KEY ; check cheat key
+	BNE .cheat               ; cheat if it's pressed	
+	
+	DEC update_counter
+	BNE .skip_update
+	
+	LDA #UPDATE_RATE
+	STA update_counter
+	
+	LDA mode
+	ASL
+	TAX
+	LDA updaters, X
+	STA .updater_switch+1
+	LDA updaters+1, X
+	STA .updater_switch+2
+.updater_switch:
+	JSR $0000 ; this address will be modified by the code above.
+
+.skip_update:	
+	INC VGA_DIRTY
+	
+	JMP main_loop
+	
+	; Go to game finished screen
+.cheat:
+	LDA #0
+	STA level
+	STA distance
+	STA distance+1
+	
+	; Switch to mode 3
+	LDA #3
+	STA mode
+	
+	JSR load_level
+	JSR clear_copter
+	JMP main_loop
+	
+
+;--------------------
+; update_mode_0
+; Demo mode
+;--------------------
+update_mode_0: ; 'press space to start'-screen
+	JSR scroll_map
+	LDA #start_message_ptr
+	JSR display_message
+	
+	LDA keyboard + FUNCTION_KEY
+	BEQ .no_action
+	JSR start_level
+.no_action:	
+	RTS
+	
+
+;--------------------
+; update_mode_1
+; Normal play mode
+;--------------------
+update_mode_1: ; the game itself
+	JSR scroll_map
+	JSR clear_copter
+	JSR move_copter
+	JSR draw_copter
+	BNE .crash
+	
+	SED
+	
+	CLC
+	LDA total_distance
+	ADC #1
+	STA total_distance
+	LDA total_distance+1
+	ADC #0
+	STA total_distance+1
+	LDA total_distance+2
+	ADC #0
+	STA total_distance+2
+	LDA total_distance+3
+	ADC #0
+	STA total_distance+3
+	
+	CLC
+	LDA distance
+	ADC #1
+	STA distance
+	LDA distance+1
+	ADC #0
+	STA distance+1
+	
+	CLD
+	
+	CMP #$10
+	BNE .not_finished
+	LDA distance
+	CMP #$00
+	BNE .almost_finished
+	
+	; Load next level path color
+	LDA level          ; load level + 1 % 8 * 4
+	SEC                ; "
+	ADC #0             ; "
+	AND #7             ; "
+	ASL                ; "
+	ASL                ; "
+	TAY
+	LDA level_table,Y  ; load next level path color
+	STA color_path_next; "
+	LDA level_table+1,Y; load next wall color
+	STA color_wall_next; "
+
+	LDA #2
+	STA color_offset
+	
+	JSR update_title_bar
+	RTS
+	
+.almost_finished:
+	; Check if we hit the next level path
+	LDY #5
+	LDA (copter_vga),Y
+	CMP color_path
+	BEQ .not_finished
+	
+	LDA #0
+	STA copter_y
+	
+	; Check if we finished the game
+	LDA level
+	CMP #7
+	BCS .game_finished
+	
+	JSR next_level	
+
+.not_finished
+	JSR update_title_bar
+	RTS
+	
+.game_finished:
+	LDA #0
+	STA level
+	STA distance
+	STA distance+1
+	
+	; Switch to mode 3
+	LDA #3
+	STA mode
+	
+	JSR load_level
+	JSR clear_copter	
+	RTS
+	
+.crash:
+	JMP crash
+	
+
+;--------------------
+; update_mode_2
+; Crashed mode
+;--------------------	
+update_mode_2: ; crashed
+	LDA #crash_message_ptr
+	JSR display_message
+	
+	LDA keyboard + FUNCTION_KEY
+	BEQ .no_action
+	JSR start_level
+.no_action:
+	
+	RTS
+	
+
+;--------------------
+; update_mode_3
+; Game finished
+;--------------------
+update_mode_3: ; Game finished
+	JSR scroll_map
+	LDA #finish_message_ptr
+	JSR display_message
+	
+	LDA keyboard+FUNCTION_KEY
+	BNE .start_level
+	
+	SED
+	CLC
+	LDA distance
+	ADC #1
+	STA distance
+	LDA distance+1
+	ADC #0
+	STA distance+1	
+	CLD
+	
+	CMP #$01
+	BNE .not_finished
+	LDA distance
+	CMP #$00
+	BNE .not_finished
+	
+	LDA #0
+	STA distance
+	STA distance+1
+	
+	INC level
+	LDA level     
+	AND #7
+	STA level	
+	JSR load_level
+	
+	JSR update_title_bar
+	RTS
+	
+.start_level:
+	JSR start_level
+	
+.not_finished:	
+	RTS
+	
+	
+
+
+;--------------------
+; update_title_bar
+; ...
+;--------------------	
+update_title_bar:
+; TODO: use a macro for the repeating code... or maybe even a loop ;]
+	LDA total_distance
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+158
+	LDA total_distance
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+156
+	
+	LDA total_distance+1
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+154
+	LDA total_distance+1
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+152
+	
+	LDA total_distance+2
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+150
+	LDA total_distance+2
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+148
+	
+	LDA total_distance+3
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+146
+	LDA total_distance+3
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+144
+	
+	LDA distance
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+130
+	LDA distance
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+128
+	
+	LDA distance+1
+	AND #$0F
+	CLC
+	ADC #$30
+	STA VGA+126
+	LDA distance+1
+	LSR
+	LSR
+	LSR
+	LSR
+	CLC
+	ADC #$30
+	STA VGA+124
+	
+	LDA level
+	CLC
+	ADC #$31
+	STA VGA+120
+	RTS
+	
+;--------------------
+; display_message
+; Display a message in the center of the screen.
+; The accumulator must point to the pointer (on the zero page) to the string of 80 chars.
+; Each '#' in the string will be replaced by the current level number.
+;--------------------
+display_message:
+	; Make sure we don;t overwrite our copter
+	LDY copter_y
+	CPY #10
+	BCC .safe
+	CPY #13
+	BCC display_message2
+	
+.safe:
+	STA .copy+1 ; put the right address in the LDA operand
+	LDX #0
+	LDY #0
+.copy:
+	LDA ($00), Y
+ 	CMP #'#'
+ 	BNE .no_special_char
+ 	LDA level
+ 	CLC
+ 	ADC #$31
+.no_special_char:
+	STA VGA + 80*12*2, X
+	LDA #CHAR_LINE
+	STA VGA + 80*11*2, X
+	STA VGA + 80*13*2, X
+	INX
+	INX
+	INY
+	CPY #80
+	BNE .copy
+	RTS
+	
+; If the copter is in our normal draw area, draw a bit lower
+display_message2:
+	STA .copy+1 ; put the right address in the LDA operand
+	LDX #0
+	LDY #0
+.copy:
+	LDA ($00), Y
+ 	CMP #'#'
+ 	BNE .no_special_char
+ 	LDA level
+ 	CLC
+ 	ADC #$31
+.no_special_char:
+	STA VGA + 80*15*2, X
+	LDA #CHAR_LINE
+	STA VGA + 80*14*2, X
+	STA VGA + 80*16*2, X
+	INX
+	INX
+	INY
+	CPY #80
+	BNE .copy
+	RTS
+	
+
+;--------------------
+; next_level
+; Proceed to the next level. (switch to mode 0)
+;--------------------
+next_level:
+	LDA #0
+	STA mode
+	
+	STA distance
+	STA distance+1
+	
+	INC level
+	
+	JSR clear_copter
+	
+	LDA #0
+	STA color_offset
+	JSR load_level
+	
+	RTS
+	
+
+;--------------------
+; load_level
+; Load level data
+;--------------------	
+load_level:
+	; Ensure we use normal colors, not next levels colors
+	LDA #0
+	STA color_offset
+	
+	LDA level                                 ; get current level index ...
+	
+	ASL                                       ;  ... multiplied by 4 ...
+	ASL                                       ;  ...
+	TAX                                       ;  ... in X
+	
+	LDA level_table+0,X                       ; load path color from level table
+	STA color_path                            ; "
+	
+	LDA level_table+1,X                       ; load wall color from level table
+	STA color_wall                            ; "
+	
+	LDA level_table+2,X                       ; load path height 1  from level table
+	STA path1_height                          ; "
+	
+	LDA level_table+3,X                       ; load path height 2 from level table
+	STA path2_height                          ; "
+	
+	RTS
+	
+
+;--------------------
+; start_level
+; Start the current level. (switch to mode 1)
+;--------------------
+start_level:
+	; Switch to mode 1
+	LDA #1
+	STA mode
+	
+	LDA #0
+	STA color_offset
+	STA distance       ; set distance to 0
+	STA distance + 1   ; "
+	
+	LDA #14            ; load initial value ...
+	STA copter_y       ;  ... into copter Y
+	
+	LDA #40            ; load initial value ...
+	STA copter_x       ;  ... into copter X
+	
+	JSR reset_map      ; initialize the map with the chosen path settings
+	JSR draw_copter    ; draw the helicopter
+	
+	RTS
+	
+;--------------------
+; crash
+; Crash. (Switch to mode 2)
+;--------------------
+crash:	
+	LDA #2
+	STA mode
+	RTS
+	
+;--------------------
+; reset_map
+; Resets the map
+;---------------------
+reset_map:
+	LDA #INITIAL_P1_DIR                       ; load initial value ...
+	STA path1_dir                             ;  ... into path 1 current segment direction
+	
+	LDA #INITIAL_P1_LENGTH                    ; load initial value ...
+	STA path1_length                          ;  ... into path 1 current segment length
+	
+	LDA #INITIAL_P1_START                     ; load initial value ...
+	STA path1_start                           ;  ... into intial path 1 start
+	
+	CLC
+	ADC path1_height                          ; add path height to path start
+	STA path1_end                             ;  "
+	
+	LDA #INITIAL_P2_DIR                       ; load initial value ...
+	STA path2_dir                             ;  ... into path 2 current segment direction
+	
+	LDA #INITIAL_P2_LENGTH                    ; load initial value ...
+	STA path2_length                          ;  ... into path 2 current segment length
+	
+	LDA #INITIAL_P2_START                     ; load initial value ...
+	STA path2_start                           ;  ... into intial path 2 start
+	
+	CLC
+	ADC path2_height                          ; add path height to path start
+	STA path2_end                             ;  "
+	
+.VGA_index .= VGA + 160
+ .REPEAT 16
+ 	LDX #240
+.loop .= *
+	LDA #CHAR_SPACE           ; draw empty space
+	STA .VGA_index-2,X        ; "
+	LDA color_path            ; store color code
+	STA .VGA_index-1,X        ; "
+	DEX                       ; decrease loop counter
+	DEX                       ; "
+	BNE .loop                 ; and loop
+.VGA_index .= .VGA_index + 240
+ .ENDR
+	RTS
+	
+;--------------------
+; handle_input
+; Reads the keyboard input and updates the keyboard state if needed.
+;--------------------
+handle_input:
+	LDA INPUT             ; load current input
+	BNE .input            ; handle it if it's not zero
+	RTS
+	
+	; We don't want to take a jump if it's zero since it will be zero
+	; most of the time. So jumping on nonzero should cause the least executed jumps.
+	
+.input:
+	CMP #RESET_KEY           ; reset
+	BEQ .reset
+	
+	AND #$80                 ; test the key-released-bit
+	BNE .released
+	
+	; Key pressed
+	LDA INPUT
+	TAY                      ; mark key as pressed
+	LDA #1                   ; "
+	STA keyboard, Y          ; "
+	JMP .done
+
+.released:
+	; Key released
+	LDA INPUT                ; strip key-released-bit
+	AND #$7F                 ; "
+	TAY                      ; mark key as released
+	LDA #0                   ; "
+	STA keyboard, Y          ; "
+	
+.done:
+	LDA #0                   ; clear the scancode ...
+	STA INPUT                ;  ... to be ready to get a new one
+	RTS
+	
+.reset:
+	LDA #0
+	STA INPUT
+	JMP reset
+
+
+ignore_input:    .BYTE 0	
+;--------------------
+; move_copter
+; Update the copter position.
+;--------------------
+move_copter:
+	LDA ignore_input
+	BNE .no_input
+	INC ignore_input
+	INC ignore_input
+	
+	; Check up key
+	LDA keyboard + UP_KEY    ; check if up key is down
+	BEQ .up_not_pressed      ; "
+	DEC copter_y             ; move copter towards the top of the screen
+	BPL .up_not_pressed      ; check lower bound
+	LDA #0                   ; enforce lower bound
+	STA copter_y             ; "
+.up_not_pressed:
+	
+	; Check down key
+	LDA keyboard + DOWN_KEY  ; check if down key is down
+	BEQ .down_not_pressed    ; "
+	LDA copter_y             ; check upper bound
+	CMP #23                  ; "
+	BCS .down_not_pressed    ; "	
+	INC copter_y             ; move copter towards the bottom of the screen
+.down_not_pressed:
+	
+	; Check left key
+	LDA keyboard + LEFT_KEY  ; check if down key is down
+	BEQ .left_not_pressed    ; "
+	LDA copter_x             ; check lower bound
+	CMP #2                   ; "
+	BCC .left_not_pressed    ; "
+	DEC copter_x             ; move copter left
+	DEC copter_x             ; move copter left
+.left_not_pressed:
+	
+	; Check right key
+	LDA keyboard + RIGHT_KEY ; check if down key is down
+	BEQ .right_not_pressed   ; "
+	LDA copter_x             ; check upper bound
+	CMP #154                 ; "
+	BCS .right_not_pressed   ; "	
+	INC copter_x             ; move copter right
+	INC copter_x             ; "
+.right_not_pressed:
+	
+.no_input:
+	DEC ignore_input
+	RTS
+
+
+;--------------------
+; scroll_map
+; Scrolls the map one column to the left
+;--------------------
+scroll_map:
+	
+.index .= VGA + 160
+ .REPEAT 24
+	LDY even_scroll         ; select the odd or even columns
+	LDX #39                 ; loop 39 times
+.loop .= *
+	LDA .index + 5, Y       ; load two columns ahead ...
+	STA .index + 1, Y       ;  ... into the current column
+	INY                     ; increase Y with 4
+	INY                     ; "
+	INY                     ; "
+	INY                     ; "
+	DEX                     ; decrease loop counter
+	BNE .loop               ; and loop
+.index .= .index + 160
+ .ENDR
+	
+	LDA even_scroll         ; flip even scroll between 0 and 2
+	EOR #2                  ; "
+	STA even_scroll         ; "
+	
+	BNE .draw_even          ; if we were an even column, redraw the second last column
+	
+	; Redraw the last column
+.draw_odd:
+	JSR draw_column         ; draw the new column
+	RTS
+	
+	; Don't draw a new column yet, instead copy the last column into the second last
+	; This behaviour is absolutly required for the rest of this subroutine to work. No altering! >:[
+.draw_even:
+.index .= VGA + 160 + 156
+ .REPEAT 24
+	LDA .index + 3
+	STA .index + 1
+.index .= .index + 160
+ .ENDR	
+	RTS
+	
+
+
+;--------------------
+; draw_copter
+; Draws the copter at copter_Y
+;--------------------
+draw_copter:
+
+	; Translate Y position to position in VGA memory	
+	LDA copter_y           ; load VGA position going with Y position from lookup table
+	ASL                    ; " (multiply by two since our lookup table conains two-byte entries)
+	TAY                    ; "
+	CLC
+	LDA .lookup,Y          ; load the low byte
+	ADC copter_x           ; add the X position
+	STA copter_vga         ; store the low byte
+	LDA .lookup+1,Y        ; load the high byte
+	ADC #0                 ; propogate the carry
+	STA copter_vga+1       ; store the high byte
+		
+; Macro to draw a character
+DRAW_COPTER_CHAR: .MACRO char
+ 	LDA (copter_vga),Y     ; "
+ 	CMP color_wall         ; compare with wall color
+ 	BNE .no_crash
+ 	LDX #1
+.no_crash:
+	LDA #char              ; draw the copter
+	DEY
+	STA (copter_vga),Y     ; "	
+	INY
+	INY
+	INY
+.continue:
+ .ENDM
+ 
+ 	; Call macro COPTER_WIDTH times
+ 	LDX #0                 ; indicate we didn't crash
+	LDY #1                 ; offset in VGA memory from copter_VGA
+.char .= CHAR_COPTER
+ .REPEAT COPTER_WIDTH
+	DRAW_COPTER_CHAR .char
+.char .= .char + 1
+ .ENDR
+	
+	; If the copter crashed, X is non-zero
+	TXA
+	RTS
+	
+.lookup:
+.val .= VGA + 160
+	.REPEAT 24
+	.WORD .val
+.val .= .val + 160
+	.ENDR
+	
+
+;--------------------
+; clear_copter
+; Removes the helicopter from the last drawn location indicated by copter_VGA
+;--------------------
+clear_copter:
+	LDY #0
+ .REPEAT COPTER_WIDTH
+	; Draw clear space
+	LDA #CHAR_SPACE        ; we didn't crash (yay!) ...
+	STA (copter_vga),Y     ;  ... so lets clear the copter with spaces
+	INY
+	INY
+ .ENDR
+	
+	RTS
+	
+
+;--------------------
+; draw_cell
+; Draws a cell.
+; Reads information from (path)+path_offset.
+;--------------------
+draw_cell: .MACRO Y_pos, VGA_pos
+
+	; Check if we're past path 1 start
+.path1:
+	LDA path1_start        ; compare path start ...
+	CMP #Y_pos             ;  ... to our current Y position
+	BEQ .in_path           ; path1_start == Y pos -> in path 1
+	BCS .path2             ; path1_start > Y pos -> not in path 1
+	
+	; path1_start < Y pos
+	; We are past path 1 start, are we also before the end?
+.path1_past_start:
+	LDA path1_end          ; compare path end ...
+	CMP #Y_pos             ;  ... to our current Y position
+	BCS .in_path           ; path1_end + path1_height >= Y pos -> in path 1
+	
+	; We aren't in path 1, are we past path 2 start?
+.path2:
+	LDA path2_start        ; compare path start ...
+	CMP #Y_pos             ;  ... to our current Y position
+	BEQ .in_path           ; path2_start == Y pos -> in path 2
+	BCS .not_in_path       ; path2_start > Y pos -> not in path 2
+	
+	; path2_start < Y pos
+	; We are past path 2 start, are we also before the end?
+.path2_past_start:
+	LDA path2_end          ; compare path end ...
+	CMP #Y_pos             ;  ... to our current Y position
+	BCC .not_in_path       ; path2_end < Y pos -> not in path 2
+	
+	; We're in one of the paths, draw a space
+.in_path:
+	LDA color_path,X       ; load path color ...
+	STA VGA_pos+1          ;  ... into the VGA memory	
+	JMP .exit
+	
+	; We're not in one of the paths, draw a block
+.not_in_path:
+	LDA color_wall,X       ; load wall color ...
+	STA VGA_pos+1          ;  ... into the VGA memory
+	
+.exit:
+	.ENDM
+	
+
+;--------------------
+; draw_column
+; Draws a new last column
+;--------------------
+draw_column:
+	LDX color_offset
+.Y_pos   .= 0
+.VGA_pos .= VGA+160+158
+ .REPEAT 25
+	draw_cell .Y_pos, .VGA_pos    ; draw the current cell
+.Y_pos   .= .Y_pos + 1            ; increase Y_pos
+.VGA_pos .= .VGA_pos + 160        ; increase VGA_pos
+ .ENDR
+ 	
+ 	; Fall trough to update_paths
+ 	; Do not put an RTS here!
+ 	; Whatever you alter, make sure update_paths stays directly below draw_column.
+ 	; If you're thinking about disobeying this order, read the license at the top of this file.
+	
+
+
+;--------------------
+; update_paths
+; If required, recalculate a direction and length
+; for eacht path. Then generates a new column based on the path data.
+;---------------------
+update_paths:
+	LDA path1_length      ; check if we ...
+	BNE .recalc2          ;  ... should generate a new section for path 1
+
+	; Generate a new section for path 1 using SEED0 and SEED1
+.recalc1:
+	JSR random            ; randomize the seeds
+	
+	; Generate a direction for the new section
+	LDA SEED0             ; use SEED0
+	AND #$7               ; modulo 8
+	TAX                   ; put it in X so we can use it in adressing mode
+	LDA increment_table,X ; load the increment from the increment_table
+	STA path1_dir         ; store the result in path1 direction
+	
+	; Generate a length for the new section
+	LDA SEED1             ; path1_length = SEED1 % 8 + 2
+	AND #7                ; "
+	CLC                   ; "
+	ADC #2                ; "
+	STA path1_length      ; "
+	
+	; Check if we also need to generate a new section for path 2
+	LDA path2_length      ; if remaining path2 length is zero ...
+	BEQ .recalc2_no_r     ;  ... recalcuate a direction and length for path 2 (but skip the randomizer)
+	JMP .update           ; else skip the recalculation
+	
+	; Check if we need to generate a new section for path 2, run the randomizer if we do
+.recalc2:
+	LDA path2_length      ; if remaining path2 length is not zero ...
+	BNE .update           ;  ... skip to the update
+	JSR random            ; randomize the seeds
+	
+	; Generate a new section for path 2 using SEED2 and SEED3
+.recalc2_no_r:
+	
+	; Generate a direction for the new section
+	LDA SEED2             ; use SEED2
+	AND #$7               ; modulo 8
+	TAX                   ; put it in X so we can use it in adressing mode
+	LDA increment_table,X ; load the increment from the increment_table
+	STA path2_dir         ; store the result in path2 direction
+	
+	; Generate a length for the new section
+	LDA SEED3             ; path2_length = SEED1 % 8 + 2
+	AND #7                ; "
+	CLC                   ; "
+	ADC #2                ; "
+	STA path2_length      ; "
+	
+	; Generate a new row of path data
+.update:
+
+	; PATH 1
+	; Add the direction to the previous starting point
+.add1:
+	CLC
+	LDA path1_start       ;  add the previous start of path 1 ...
+	ADC path1_dir         ;   ... and the direction
+	
+	; Cap the new value between 0 and 13 (inclusive)
+.cap_below1:
+	BPL .cap_above1       ; if new start is below 0 ...
+	LDA #0                ;  ... make it zero
+.cap_above1:
+	CMP #14               ; if new path ...
+	BCC .store1           ;  ... is greater than or equal to 14 ...
+	LDA #13               ;  ... make it 13
+	
+	; Store the path data
+.store1:
+	STA path1_start       ; store our new start
+	CLC
+	ADC path1_height      ; add path height
+	STA path1_end         ; store the new end
+	
+
+	; PATH 2
+	; Add the direction to the previous starting point
+.add2:
+	CLC
+	LDA path2_start      ;  add the previous starting point of path 2
+	ADC path2_dir        ;  ... and the direction
+	
+	; Cap the new value between 0 and 13 (inclusive)
+.cap_below2:
+	BPL .cap_above2      ; if new path2 start is below 0 ...
+	LDA #0               ;  ... make it zero
+.cap_above2:
+	CMP #14              ; if new path ...
+	BCC .store2          ;  ... is greater than or equal to 14 ...
+	LDA #13              ;  ... make it 13
+	
+	; Store the path data
+.store2:
+	STA path2_start      ; store our new start
+	CLC
+	ADC path2_height     ; add path height
+	STA path2_end        ; store the new end here
+	
+.return:
+	DEC path1_length     ; decrease the remaining length
+	DEC path2_length     ; decrease the remaining length
+	
+	RTS
+	
+
+;--------------------
+; Linear congruential pseudo-random number generator
+;
+; Calculate SEED = SEED * 69069 + 1
+;
+;   Space: 173 bytes
+;   Speed: JSR RAND takes 326 cycles
+;--------------------
+random:
+	; TMP = SEED * 2
+	LDA SEED0
+	ASL
+	STA TMP
+	LDA SEED1
+	ROL
+	STA TMP+1
+	LDA SEED2
+	ROL
+	STA TMP+2
+	LDA SEED3
+	ROL
+	STA TMP+3
+	
+	; TMP = TMP + SEED (= SEED * 3)
+	CLC
+	LDA SEED0
+	ADC TMP
+	STA TMP
+	LDA SEED1
+	ADC TMP+1
+	STA TMP+1
+	LDA SEED2
+	ADC TMP+2
+	STA TMP+2
+	LDA SEED3
+	ADC TMP+3
+	STA TMP+3
+	
+	; SEED = SEED + $10000 * SEED
+	CLC
+	LDA SEED2
+	ADC SEED0
+	TAX       ; keep byte 2 in X for now (for speed)
+	LDA SEED3
+	ADC SEED1
+	TAY       ; keep byte 3 in Y for now
+	CLC       ; SEED = SEED + $100 * SEED
+	LDA SEED1
+	ADC SEED0
+	PHA       ; push byte 1 onto stack
+	TXA
+	ADC SEED1
+	TAX
+	TYA
+	ADC SEED2
+	TAY
+	
+	; TMP = TMP * 4 (= old seed * $0C)
+	LDA TMP
+	ASL
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	ASL
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	STA TMP
+	
+	; SEED = SEED + TMP
+	CLC
+	ADC SEED0
+	STA SEED0
+	PLA       ; pull byte 1 from stack
+	ADC TMP+1
+	STA SEED1
+	TXA
+	ADC TMP+2
+	TAX
+	TYA
+	ADC TMP+3
+	TAY
+	CLC
+	
+	; SEED = SEED + TMP * $100
+	LDA TMP
+	ADC SEED1
+	STA SEED1
+	TXA
+	ADC TMP+1
+	TAX
+	TYA
+	ADC TMP+2
+	TAY
+	
+	; TMP = TMP * $10 (= old seed * $C0)
+	LDA TMP
+	ASL       ; put byte 0 of TMP in the accumulator
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	ASL
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	ASL
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	ASL
+	ROL TMP+1
+	ROL TMP+2
+	ROL TMP+3
+	
+	; SEED = SEED + TMP + 1
+	SEC
+	ADC SEED0
+	STA SEED0
+	LDA TMP+1
+	ADC SEED1
+	STA SEED1
+	TXA
+	ADC TMP+2
+	STA SEED2
+	TYA
+	ADC TMP+3
+	STA SEED3
+	RTS
+	

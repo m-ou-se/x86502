@@ -1,0 +1,2852 @@
+<html>
+	
+	<head>
+		<style type="text/css">
+			body {
+				font-family: 'Courier New', monospace;
+				font-size: small;
+			}
+			h1 {
+				text-align: center;
+				margin: 0;
+				font-size: xx-large;
+				border-bottom: 1px solid #000;
+			}
+			h2 {
+				border-bottom: 1px dotted #999;
+				margin-top: 1cm;
+				font-size: xx-large;
+			}
+			h3 {
+				font-size: x-large;
+			}
+			div.display {
+				text-align: center;
+				margin-left: 2%;
+				width: 96%;
+			}
+			table {
+				display: inline-block;
+				margin-bottom: 0.5cm;
+				background-color: #EEE;
+				border: 1px solid #999;
+			}
+			table th {
+				text-align: center;
+				background: #CCC;
+				padding: 2px;
+				margin: 1px;
+			}
+			table td {
+				text-align: center;
+				border: 1px solid #999;
+				padding: 2px;
+				margin: 1px;
+			}
+			td.instruction {
+				height: 44pt;
+				vertical-align: top;
+			}
+			td.instruction:hover  {
+				background: #0F0;
+			}
+			span.mod {
+				text-decoration: underline;
+				font-style: italic;
+				color: #999;
+			}
+			span.opcode {
+				display: block;
+				height: 12pt;
+				font-size: 7pt;
+			}
+			td.instruction:hover .opcode {
+				color: red;
+				font-size: 10pt;
+				font-weight: bold;
+			}
+			span.name {
+				display: block;
+				height: 14pt;
+				color: blue;
+				font-weight: bold;
+			}
+			span.operand {
+				display: block;
+				height: 13pt;
+				font-size: 10pt;
+			}
+			th.IS {
+				font-size: large;
+				color: green;
+			}
+		</style>
+	</head>
+	
+	<body>
+		
+		<h1>6502 Instruction Set</h1>
+		
+		<p>
+			All instructions are 1 byte (8 bits). In this document, we call the least significant two bits 'IS' (instruction set), the
+			next three bits 'OM' (operand mode), and the three remaining bits 'II' (instruction index). See the overview table for
+			IS 01 for the clearest example to see why these names are useful.
+		</p>
+		
+		<div class="display">
+			<table>
+				<tr>
+					<th>7</th>
+					<th>6</th>
+					<th>5</th>
+					<th>4</th>
+					<th>3</th>
+					<th>2</th>
+					<th>1</th>
+					<th>0</th>
+				</tr>
+				<tr>
+					<td colspan="3">II</td>
+					<td colspan="3">OM</td>
+					<td colspan="2">IS</td>
+				</tr>
+			</table>
+		</div>
+		
+		
+		
+		<h2>Overview</h2>
+		
+		<div class="display">
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 00</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 00 </span>
+						<span class="name"> BRK </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 04 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 08 </span>
+						<span class="name"> PHP </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0C </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 10 </span>
+						<span class="name"> BPL </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 14 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 18 </span>
+						<span class="name"> CLC </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1C </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 20 </span>
+						<span class="name"> JSR </span>
+						<span class="operand"> im2 </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 24 </span>
+						<span class="name"> BIT </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 28 </span>
+						<span class="name"> PLP </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2C </span>
+						<span class="name"> BIT </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 30 </span>
+						<span class="name"> BMI </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 34 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 38 </span>
+						<span class="name"> SEC </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3C </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 40 </span>
+						<span class="name"> RTI </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 44 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 48 </span>
+						<span class="name"> PHA </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4C </span>
+						<span class="name"> JMP </span>
+						<span class="operand"> im2 </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 50 </span>
+						<span class="name"> BVC </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 54 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 58 </span>
+						<span class="name"> CLI </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5C </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 60 </span>
+						<span class="name"> RTS </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 64 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 68 </span>
+						<span class="name"> PLA </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6C </span>
+						<span class="name"> JMP </span>
+						<span class="operand"> ab2 </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 70 </span>
+						<span class="name"> BVS </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 74 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 78 </span>
+						<span class="name"> SEI </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7C </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 80 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 84 </span>
+						<span class="name"> STY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 88 </span>
+						<span class="name"> DEY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8C </span>
+						<span class="name"> STY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 90 </span>
+						<span class="name"> BCC </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 94 </span>
+						<span class="name"> STY </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 98 </span>
+						<span class="name"> TYA </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9C </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A0 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A4 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A8 </span>
+						<span class="name"> TAY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AC </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B0 </span>
+						<span class="name"> BCS </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B4 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B8 </span>
+						<span class="name"> CLV </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BC </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C0 </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C4 </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C8 </span>
+						<span class="name"> INY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CC </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D0 </span>
+						<span class="name"> BNE </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D4 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D8 </span>
+						<span class="name"> CLD </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DC </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E0 </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E4 </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E8 </span>
+						<span class="name"> INX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EC </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F0 </span>
+						<span class="name"> BEQ </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F4 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F8 </span>
+						<span class="name"> SED </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FC </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 01</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 01 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 05 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 09 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0D </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 11 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 15 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 19 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1D </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 21 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 25 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 29 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2D </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 31 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 35 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 39 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3D </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 41 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 45 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 49 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4D </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 51 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 55 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 59 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5D </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 61 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 65 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 69 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6D </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 71 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 75 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 79 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7D </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 81 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 85 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 89 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8D </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 91 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 95 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 99 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9D </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A1 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A5 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A9 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AD </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B1 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B5 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B9 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BD </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C1 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C5 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C9 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CD </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D1 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D5 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D9 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DD </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E1 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E5 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E9 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> ED </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F1 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F5 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F9 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FD </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 10</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 02 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 06 </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0A </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0E </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 12 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 16 </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1A </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1E </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 22 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 26 </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2A </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2E </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 32 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 36 </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3A </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3E </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 42 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 46 </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4A </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4E </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 52 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 56 </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5A </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5E </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 62 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 66 </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6A </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6E </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 72 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 76 </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7A </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7E </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 82 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 86 </span>
+						<span class="name"> STX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8A </span>
+						<span class="name"> TXA </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8E </span>
+						<span class="name"> STX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 92 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 96 </span>
+						<span class="name"> STX </span>
+						<span class="operand"> zpY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9A </span>
+						<span class="name"> TXS </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9E </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A2 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A6 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AA </span>
+						<span class="name"> TAX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AE </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B2 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B6 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> zpY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BA </span>
+						<span class="name"> TSX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BE </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> abY </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C2 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C6 </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CA </span>
+						<span class="name"> DEX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CE </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D2 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D6 </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DA </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DE </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E2 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E6 </span>
+						<span class="name"> INC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EA </span>
+						<span class="name"> NOP </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EE </span>
+						<span class="name"> INC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F2 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F6 </span>
+						<span class="name"> INC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FA </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FE </span>
+						<span class="name"> INC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 11</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 03 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 07 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0F </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 13 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 17 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1F </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 23 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 27 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2F </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 33 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 37 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3F </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 43 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 47 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4F </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 53 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 57 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5F </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 63 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 67 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6F </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 73 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 77 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7F </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 83 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 87 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8F </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 93 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 97 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9B </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9F </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AB </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AF </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BB </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BF </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CB </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CF </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DB </span>
+						<span class="name"> STP </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DF </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EB </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EF </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F3 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F7 </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FB </span>
+						<span class="name"> --- </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FF </span>
+						<span class="name"> --- </span>
+					</td>
+				</tr>
+			</table>
+			
+		</div>
+		
+		
+		<h3>Some modifications</h3>
+		
+		<p>
+			Everything in <span class="mod">underlined italics</span> are modifications to make the structure a bit more logical.
+			These modifications will <strong>not</strong> affect the way instructions are read or executed.
+		</p>
+		<p>
+			<em>TODO: Explain why these modifications don't hurt.</em>
+		</p>
+		
+		
+		<div class="display">
+		
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 00</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 00 </span>
+						<span class="name"> BRK </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 04 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 08 </span>
+						<span class="name"> PHP </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 10 </span>
+						<span class="name"> BPL </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 14 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 18 </span>
+						<span class="name"> CLC </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 20 </span>
+						<span class="name"> JSR </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 24 </span>
+						<span class="name"> BIT </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 28 </span>
+						<span class="name"> PLP </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2C </span>
+						<span class="name"> BIT </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 30 </span>
+						<span class="name"> BMI </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 34 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 38 </span>
+						<span class="name"> SEC </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 40 </span>
+						<span class="name"> RTI </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 44 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 48 </span>
+						<span class="name"> PHA </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4C </span>
+						<span class="name"> JMP </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 50 </span>
+						<span class="name"> BVC </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 54 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 58 </span>
+						<span class="name"> CLI </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 60 </span>
+						<span class="name"> RTS </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 64 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 68 </span>
+						<span class="name"> PLA </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6C </span>
+						<span class="name"> JMP </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 70 </span>
+						<span class="name"> BVS </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 74 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 78 </span>
+						<span class="name"> SEI </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 80 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 84 </span>
+						<span class="name"> STY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 88 </span>
+						<span class="name"> DEY </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8C </span>
+						<span class="name"> STY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 90 </span>
+						<span class="name"> BCC </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 94 </span>
+						<span class="name"> STY </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 98 </span>
+						<span class="name"> TYA </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9C </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A0 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A4 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A8 </span>
+						<span class="name mod"> LDY </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AC </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B0 </span>
+						<span class="name"> BCS </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B4 </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B8 </span>
+						<span class="name"> CLV </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BC </span>
+						<span class="name"> LDY </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C0 </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C4 </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C8 </span>
+						<span class="name"> INY </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CC </span>
+						<span class="name"> CPY </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D0 </span>
+						<span class="name"> BNE </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D4 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D8 </span>
+						<span class="name"> CLD </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DC </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E0 </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E4 </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E8 </span>
+						<span class="name"> INX </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EC </span>
+						<span class="name"> CPX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F0 </span>
+						<span class="name"> BEQ </span>
+						<span class="operand"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F4 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F8 </span>
+						<span class="name"> SED </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FC </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 01</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 01 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 05 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 09 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0D </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 11 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 15 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 19 </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1D </span>
+						<span class="name"> ORA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 21 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 25 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 29 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2D </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 31 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 35 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 39 </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3D </span>
+						<span class="name"> AND </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 41 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 45 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 49 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4D </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 51 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 55 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 59 </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5D </span>
+						<span class="name"> EOR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 61 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 65 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 69 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6D </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 71 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 75 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 79 </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7D </span>
+						<span class="name"> ADC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 81 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 85 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 89 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8D </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 91 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 95 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 99 </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9D </span>
+						<span class="name"> STA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A1 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A5 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A9 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AD </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B1 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B5 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B9 </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BD </span>
+						<span class="name"> LDA </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C1 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C5 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C9 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CD </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D1 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D5 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D9 </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DD </span>
+						<span class="name"> CMP </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E1 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> inX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E5 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E9 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> ED </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F1 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> inY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F5 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F9 </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FD </span>
+						<span class="name"> SBC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 10</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 02 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 06 </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0A </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0E </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 12 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 16 </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1A </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1E </span>
+						<span class="name"> ASL </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 22 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 26 </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2A </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2E </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 32 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 36 </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3A </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3E </span>
+						<span class="name"> ROL </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 42 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 46 </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4A </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4E </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 52 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 56 </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5A </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5E </span>
+						<span class="name"> LSR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 62 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 66 </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6A </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6E </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 72 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 76 </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7A </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7E </span>
+						<span class="name"> ROR </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 82 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 86 </span>
+						<span class="name"> STX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8A </span>
+						<span class="name"> TXA </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8E </span>
+						<span class="name"> STX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 92 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 96 </span>
+						<span class="name"> STX </span>
+						<span class="operand"> zpY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9A </span>
+						<span class="name mod"> STX </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9E </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A2 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A6 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AA </span>
+						<span class="name mod"> LDX </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AE </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B2 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B6 </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> zpY </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BA </span>
+						<span class="name mod"> LDX </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BE </span>
+						<span class="name"> LDX </span>
+						<span class="operand"> abY </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C2 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C6 </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CA </span>
+						<span class="name"> DEX </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CE </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D2 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D6 </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DA </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DE </span>
+						<span class="name"> DEC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E2 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E6 </span>
+						<span class="name"> INC </span>
+						<span class="operand"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EA </span>
+						<span class="name"> NOP </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EE </span>
+						<span class="name"> INC </span>
+						<span class="operand"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F2 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F6 </span>
+						<span class="name"> INC </span>
+						<span class="operand"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FA </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FE </span>
+						<span class="name"> INC </span>
+						<span class="operand"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+			<table>
+				<tr>
+					<th colspan="2" rowspan="2" class="IS">IS 11</th>
+					<th colspan="8">OM</th>
+				</tr>
+				<tr>
+					<th>000</th><th>001</th><th>010</th><th>011</th><th>100</th><th>101</th><th>110</th><th>111</th>
+				</tr>
+				<tr>
+					<th rowspan="8">II</th>
+					<th>000</th>
+					<td class="instruction">
+						<span class="opcode"> 03 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 07 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 0F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 13 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 17 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 1F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>001</th>
+					<td class="instruction">
+						<span class="opcode"> 23 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 27 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 2F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 33 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 37 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 3F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>010</th>
+					<td class="instruction">
+						<span class="opcode"> 43 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 47 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 4F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 53 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 57 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 5F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>011</th>
+					<td class="instruction">
+						<span class="opcode"> 63 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 67 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 6F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 73 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 77 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 7F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>100</th>
+					<td class="instruction">
+						<span class="opcode"> 83 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 87 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 8F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 93 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 97 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9B </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> 9F </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>101</th>
+					<td class="instruction">
+						<span class="opcode"> A3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> A7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AB </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> AF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> B7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BB </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> BF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>110</th>
+					<td class="instruction">
+						<span class="opcode"> C3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> C7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CB </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> CF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> D7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DB </span>
+						<span class="name"> STP </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> DF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+				<tr>
+					<th>111</th>
+					<td class="instruction">
+						<span class="opcode"> E3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> imm </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> E7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EB </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> acc </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> EF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abs </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F3 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> rel </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> F7 </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> zpX </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FB </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> sp  </span>
+					</td>
+					<td class="instruction">
+						<span class="opcode"> FF </span>
+						<span class="name"> --- </span>
+						<span class="operand mod"> abX </span>
+					</td>
+				</tr>
+			</table>
+			
+		</div>
+		
+	</body>
+	
+</html>

@@ -1,0 +1,1 @@
+gcc ../*.s ../../*.s -m32 -nostartfiles -nostdlib -nodefaultlibs -Wa,-I../.. -Wl,-T../linker.ld -o x86502 && cat floppy_template.img > floppy.img && cat x86502 >> floppy.img
